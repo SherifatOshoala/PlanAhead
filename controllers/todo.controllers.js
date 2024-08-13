@@ -37,8 +37,9 @@ const createTodo = async(req, res) => {
 const getTodo = async(req, res) => {
   try {
       const id = req.params.id;
-     const getTodo = await Todo.findOne({where:{todo_id:id, is_deleted:false}})
-            if (getTodo == null) throw new Error(messages.articleExistsNot);
+     const getTodo = await Todo.findOne({where:{todo_id:id}})
+            if (getTodo == null) throw new Error(messages.todoExistsNot);
+            if(getTodo.dataValues.is_deleted == true)throw new Error(messages.todoExistsNot)
             delete getTodo.dataValues.is_deleted
             delete getTodo.dataValues.deleted_at
             res.status(200).json({
