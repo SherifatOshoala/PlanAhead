@@ -4,12 +4,12 @@ const {createTodo, getTodo, getTodos, updateTodo, deleteTodo} = require('../cont
 
 router.post('/todos/:customer_id', createTodo)
 
-router.get('/todo/:id', getTodo )
+router.get('/todo/:id/:customer_id', getTodo )
 
-router.get('/todos', getTodos)
+router.get('/todos/:customer_id', getTodos)
 
-router.patch('/todo/:id', updateTodo)
+router.patch('/todo/:id/:customer_id', updateTodo)
 
-router.delete('/todo/:id', deleteTodo)
+router.delete('/todo/:id/:customer_id', deleteTodo)
 
 module.exports = router

@@ -36,16 +36,17 @@ const createTodo = async(req, res) => {
 
 const getTodo = async(req, res) => {
   try {
-      const id = req.params.id;
-     const getTodo = await Todo.findOne({where:{todo_id:id}})
-            if (getTodo == null) throw new Error(messages.todoExistsNot);
-            if(getTodo.dataValues.is_deleted == true)throw new Error(messages.todoExistsNot)
+      const {id, customer_id} = req.params;
+     const getTodo = await Todo.findOne({where:{todo_id:id, customer_id:customer_id, is_deleted:false}})
+
+            if (getTodo) {
             delete getTodo.dataValues.is_deleted
-            delete getTodo.dataValues.deleted_at
+            delete getTodo.dataValues.deleted_at}
+            
             res.status(200).json({
               success: true,
               message:messages.getTodo ,
-              data: getTodo.dataValues
+              data: getTodo
             });
     } catch (error) {
       res.status(500).json({
@@ -56,35 +57,31 @@ const getTodo = async(req, res) => {
 }
 
 const getTodos = async (req, res) => {
-let { search } = req.query;
-
+  const id = req.params.customer_id
+let { search } = req.query
     try {
       if (search) {
         search = search.toLowerCase()
        const getTodosBySearch = await Todo.findAll({where:
         {[Op.or]: [
-          fn('LOWER', col('todo_name')), { is_deleted:false, todo_name: { [Op.like]: `%${search}%` } },
-          fn('LOWER', col('todo_description')), { is_deleted:false, todo_description: { [Op.like]: `%${search}%` } },
-          fn('LOWER', col('todo_status')), { is_deleted:false, todo_status: { [Op.like]: `%${search}%`} },
+          fn('LOWER', col('todo_name')), { is_deleted:false, customer_id:id, todo_name: { [Op.like]: `%${search}%` } },
+          fn('LOWER', col('todo_description')), { is_deleted:false,customer_id:id, todo_description: { [Op.like]: `%${search}%`}},
+          fn('LOWER', col('todo_status')),{ is_deleted:false, customer_id:id, todo_status: { [Op.like]: `%${search}%`} },
         ] }})
-              if (getTodosBySearch.length == 0) throw new Error(messages.noMatch);
-              return res.status(200).json({
+         res.status(200).json({
                 status: true,
                 message: messages.getTodos,
                 data: getTodosBySearch[0].dataValues
               });
           }
-      
     else {
-  const getTodos = await Todo.findAll({where:{is_deleted: false}})
-              if (getTodos.length == 0) throw new Error(messages.noArticle)
-              return res.status(200).json({
+  const getTodos = await Todo.findAll({where:{is_deleted:false, customer_id:id}})
+       res.status(200).json({
                 status: true,
                 message: messages.getTodos,
-                data: getTodos,
+                data: getTodos
               });
           }
-
     } catch (error) {
       res.status(500).json({
         success: false,
@@ -95,16 +92,16 @@ let { search } = req.query;
 
 const updateTodo = async(req, res) => {
   try {
-    const id = req.params.id;
-const checkIsDeleted = await Todo.findOne({where: {todo_id:id}})
-if(checkIsDeleted == null || checkIsDeleted.dataValues.is_deleted == true) throw new Error(messages.todoExistsNot);
-
+  
+const {id,customer_id} = req.params;
+const todo = await Todo.findOne({where: {todo_id:id, customer_id: customer_id,is_deleted:false}})
+if(!todo) throw new Error ('failed!')
 const { todo_name, todo_description, todo_status} = req.body;
     const validate = updateTodoValidation(req.body)
     if(validate != undefined){
       throw new Error(validate.details[0].message)
     }
-    let keys = {};
+    let keys = {}; // in a bid not to expose req.body
 
     if (todo_name) {
      keys.todo_name= todo_name
@@ -136,9 +133,10 @@ const updateTodo = await Todo.update(keys, {where:{todo_id:id}})
 }
 
 const deleteTodo = async (req, res) => {
-const id = req.params.id 
+const {id, customer_id} = req.params
 try{
-Todo.update({is_deleted: true}, {where:{todo_id:id}})
+const todo = await Todo.update({is_deleted: true}, {where:{todo_id:id, customer_id:customer_id}})
+if(todo[0] ==0) throw new Error ('failed')
 res.status(200).json({
   status: true,
   message: messages.todoDeleted

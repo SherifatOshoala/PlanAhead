@@ -278,7 +278,7 @@ const { surname, other_names, phone } = req.body;
     if(validate != undefined){
       throw new Error(validate.details[0].message)
     }
-    let keys = {};
+    let keys = {}; // in a bid not to expose req.body
 
     if (surname) {
      keys.surname= surname
