@@ -13,6 +13,7 @@ const {
 } = require("../validations/customer.validations.js");
 const { encryptPassword, generateOtp, checkPassword } = require("../utils");
 const { v4: uuidv4 } = require("uuid");
+const jwt = require('jsonwebtoken');
 
 const createCustomer = async (req, res) => {
   const {
@@ -122,9 +123,12 @@ const customerLogin = async (req, res) => {
     const hash = getUserByEmail.dataValues.password_hash;
     const comparePassword = await checkPassword(password, hash);
     if (!comparePassword) throw new Error(messages.invalidEmailOrPassword);
+    const oneHour = "1h"
+    const token = jwt.sign({ email: email, _id:uuidv4()}, process.env.JWT_SECRET, {expiresIn: oneHour })
     res.status(201).json({
       status: true,
       message: messages.login,
+      token: token
     });
   } catch (error) {
     const keys = Object.keys(error)
@@ -241,20 +245,20 @@ res.status(500).json({
 }
 
 const changePassword = async (req, res) => {
-  const id = req.params.customer_id
+  const {customer_id} = req.params
 const {old_password, new_password, password_confirmation} = req.body
 try{
-  const checkIfUserExists = await Customers.findOne({where:{customer_id:id}})
-  if(checkIfUserExists == null) throw new Error (messages.customerExistsNot)
-const customer_hash = checkIfUserExists.password_hash
+const getUser = await Customers.findOne({where:{customer_id:customer_id}})
+if(getUser == null) throw new Error(messages.customerExistsNot)
+const validate = changePasswordValidation(req.body)
+if (validate != undefined) throw new Error(validate.details[0].message);
+const customer_hash = getUser.password_hash
 const comparePassword = await checkPassword(old_password, customer_hash);
 if (!comparePassword) throw new Error(messages.incorrectPassword)
-  const validate = changePasswordValidation(req.body)
-  if (validate != undefined) throw new Error(validate.details[0].message);
-  const [hash, salt] = await encryptPassword(new_password);
+const [hash, salt] = await encryptPassword(new_password);
   await Customers.update(
     { password_hash: hash, password_salt: salt },
-    { where: { customer_id: id } }
+    { where: { customer_id: customer_id} }
   );
 res.status(200).json({
   status: true, 
@@ -272,7 +276,7 @@ res.status(200).json({
 
 const updateProfile = async(req, res) => {
   try {
-    const id = req.params.id;
+    const id = req.params.customer_id
 const { surname, other_names, phone } = req.body;
     const validate = updateProfileValidation(req.body)
     if(validate != undefined){
@@ -290,7 +294,7 @@ const { surname, other_names, phone } = req.body;
     keys.phone = phone
     }
   const customer = await Customers.findOne({ where: { customer_id: id } });
-    if (!customer) {
+    if (customer == null) {
       throw new Error(messages.customerExistsNot);
     }
 const updateCustomer = await Customers.update(keys, {where:{customer_id:id}})

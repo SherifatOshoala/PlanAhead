@@ -67,7 +67,7 @@ return error
 
 const changePasswordValidation = (data) => {
 const  changePasswordValidationSchema = Joi.object({
-  old_password: Joi.string().required().messages({
+    old_password: Joi.string().required().messages({
     "string.empty": `"old_password" cannot be empty`,
     "any.required": `"old_password" field is required`,
   }),

@@ -24,3 +24,4 @@ module.exports = {
    changePassword: "Password changed successfully!"
 
 }
+

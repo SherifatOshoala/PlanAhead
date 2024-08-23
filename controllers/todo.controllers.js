@@ -1,19 +1,15 @@
 const Todo = require('../models/todo.models');
-const Customers = require("../models/customers.model.js");
-const messages = require("../messages");
+const messages = require("../messages/index.js");
 const { validateTodo, updateTodoValidation } = require('../validations/todo.validations')
 const { v4: uuidv4 } = require('uuid'); 
 const { Op, fn, col } = require('sequelize');
 
 const createTodo = async(req, res) => {
   const id = req.params.customer_id
-    const { todo_name, todo_description  } = req.body
+    const { todo_name, todo_description } = req.body
     try{
-        const checkCustomer = await Customers.findOne({where:{customer_id:id}})
-        if(checkCustomer == null) throw new Error(messages.customerExistsNot)
-    
     const validate = validateTodo(req.body)
-    if(validate != undefined) throw new Error(error.details[0].message)
+    if(validate != undefined) throw new Error(validate.details[0].message)
     const checkIfTodoExist = await Todo.findOne({where:{ todo_name: todo_name} })
     if(checkIfTodoExist != null ) throw new Error(messages.todoExists)
     await Todo.create({
@@ -64,7 +60,7 @@ let { search } = req.query
         search = search.toLowerCase()
        const getTodosBySearch = await Todo.findAll({where:
         {[Op.or]: [
-          fn('LOWER', col('todo_name')), { is_deleted:false, customer_id:id, todo_name: { [Op.like]: `%${search}%` } },
+          fn('LOWER', col('todo_name')), {is_deleted:false, customer_id:id, todo_name: { [Op.like]: `%${search}%` } },
           fn('LOWER', col('todo_description')), { is_deleted:false,customer_id:id, todo_description: { [Op.like]: `%${search}%`}},
           fn('LOWER', col('todo_status')),{ is_deleted:false, customer_id:id, todo_status: { [Op.like]: `%${search}%`} },
         ] }})
@@ -92,7 +88,7 @@ let { search } = req.query
 
 const updateTodo = async(req, res) => {
   try {
-  
+
 const {id,customer_id} = req.params;
 const todo = await Todo.findOne({where: {todo_id:id, customer_id: customer_id,is_deleted:false}})
 if(!todo) throw new Error ('failed!')
@@ -149,6 +145,7 @@ catch(error){
 }
 
 }
+
 module.exports = {
     createTodo,
     getTodo,
